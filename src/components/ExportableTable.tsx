@@ -19,11 +19,9 @@ export const ExportableTable: React.FC<ExportableTableProps> = ({
   const exportAsText = () => {
     let content = `${title}\n\n`;
 
-    // Add header row
     content += columns.map((col) => col.header.padEnd(15)).join("") + "\n";
     content += columns.map(() => "---------------").join("") + "\n";
 
-    // Add data rows
     data.forEach((row) => {
       content +=
         columns
@@ -39,7 +37,6 @@ export const ExportableTable: React.FC<ExportableTableProps> = ({
   };
 
   const exportAsCSV = () => {
-    // Convert data to format expected by PapaParse
     const csvData = data.map((row) => {
       const newRow: Record<string, any> = {};
       columns.forEach((col) => {

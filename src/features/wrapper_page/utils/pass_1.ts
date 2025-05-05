@@ -61,6 +61,7 @@ export function assignLocationCounters(parsedLines: any, startAddress?: any) {
         throw new Error(`Invalid RESB operand at line ${i}: ${operand}`);
       }
     } else if (opcode === "BYTE") {
+      console.log("BYTE OPERAND ----------------- ", operand);
       if (operand.startsWith("C'") && operand.endsWith("'")) {
         const str = operand.slice(2, -1);
         locctr += str.length; // Each character takes 1 byte
@@ -86,7 +87,6 @@ export function assignLocationCounters(parsedLines: any, startAddress?: any) {
         throw new Error(`Invalid ORG operand at line ${i}: ${operand}`);
       }
     } else if (directives.includes(opcode)) {
-      // Other directives don't affect LOCCTR
       continue;
     } else if (opcode) {
       // Handle regular instructions
@@ -117,7 +117,6 @@ export function assignLocationCounters(parsedLines: any, startAddress?: any) {
 export function createSymbolTable(parsedLines: any[]) {
   const symbolTable: Record<string, string> = {};
 
-  // First pass: Process all labels except those defined by EQU
   for (const line of parsedLines) {
     if (
       line.label &&

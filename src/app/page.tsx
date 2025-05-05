@@ -27,6 +27,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Star } from "lucide-react";
 
 export default function Home() {
   const [beforeUpload, setBeforeUpload] = useState(true);
@@ -58,33 +59,23 @@ export default function Home() {
   }
 
   function handleConvert(content: any) {
-    // parsing the intermediate file
     const parsed = parseIntermediateFile(content);
     setParsedData(parsed);
     console.log("Parsed Data:", parsed);
-
-    // Pass 1: Assign location counters
     const withLocationCounters = assignLocationCounters(parsed[0]);
     setLocationCounterAssigned(withLocationCounters);
     console.log("Location Counter Assigned:", withLocationCounters);
-
-    // Create symbol table
     const symbols = createSymbolTable(withLocationCounters);
     setSymbolTable(symbols);
     console.log("Symbol Table:", symbols);
-
-    // Pass 2: Generate object code
     const withObjectCode = generateObjectCode(withLocationCounters);
     setAssembledCode(withObjectCode);
     console.log("Assembled Code with Object Code:", withObjectCode);
-
-    // Generate HTE records
     const records = generateHTERecords(withObjectCode);
     setHteRecords(records);
     console.log("HTE Records:", records);
   }
 
-  // Function to download HTE records as a text file
   const downloadHTERecords = () => {
     if (!hteRecords || hteRecords.length === 0) return;
 
@@ -140,23 +131,29 @@ export default function Home() {
         </h1>
 
         {/* Process Another File button moved to top */}
-        <Button
-          variant="outline"
-          onClick={() => {
-            setBeforeUpload(true);
-            setFiles([]);
-            setSicFile(null);
-            setParsedData(null);
-            setLocationCounterAssigned(null);
-            setSymbolTable({});
-            setAssembledCode(null);
-            setHteRecords([]);
-          }}
-          className="flex items-center gap-2"
-        >
-          <RefreshCw className="h-4 w-4" />
-          Process Another File
-        </Button>
+        <div className="flex flex-row items-center justify-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setBeforeUpload(true);
+              setFiles([]);
+              setSicFile(null);
+              setParsedData(null);
+              setLocationCounterAssigned(null);
+              setSymbolTable({});
+              setAssembledCode(null);
+              setHteRecords([]);
+            }}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Process Another File
+          </Button>
+          <Button variant={"secondary"}>
+            <Star />
+            Analyze code by AI
+          </Button>
+        </div>
       </div>
 
       {/* File information */}

@@ -22,6 +22,8 @@ export function parseIntermediateFile(input: string): [Instruction[], string] {
 
     parts.shift();
 
+    console.log(parts);
+
     let label = "",
       opcode = "",
       operand = "",

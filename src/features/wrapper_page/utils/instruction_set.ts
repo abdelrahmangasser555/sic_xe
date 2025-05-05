@@ -256,6 +256,20 @@ export const instructionSet = [
     opcode: "DC",
     description: "Write Device",
   },
+  {
+    mnemonic: "RSUB",
+    format: [3, 4],
+    size: 3,
+    opcode: "4C",
+    description: "pc <-- (l)",
+  },
+  {
+    mnemonic: "LDB",
+    format: [3, 4],
+    size: 3,
+    opcode: "4C",
+    description: "Write Device",
+  },
 ];
 
 export const instructionMnemonics = [

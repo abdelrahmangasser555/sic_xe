@@ -45,7 +45,7 @@ export function FileUploadDemo({
         single={single}
         maxSize={maxSize}
         onError={onError}
-        only={["text/plain"]}
+        only={["text/plain", "text/x-asm", "application/octet-stream"]}
         {...props}
       />
     </div>
