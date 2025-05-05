@@ -291,6 +291,17 @@ export default function Home() {
                   setState={setAssemblyLines}
                   onSave={handleAssembleFromText}
                 />
+                <h1 className="text-lg font-bold text-white mt-4">
+                  Example Test Files
+                </h1>
+                <p className="text-sm text-neutral-400 mb-2">
+                  Click on any of the test files below to load (hover to preview
+                  code)
+                </p>
+                <TestFiles
+                  files={testFiles}
+                  handleConvert={handleConvertFromTestFile}
+                />
               </TabsContent>
             </Tabs>
           </div>
