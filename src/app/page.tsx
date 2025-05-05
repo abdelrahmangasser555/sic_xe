@@ -17,7 +17,7 @@ import { AssembledCodeSection } from "@/components/sections/AssembledCodeSection
 import { SymbolTableSection } from "@/components/sections/SymbolTableSection";
 import { IntermediateResultSection } from "@/components/sections/IntermediateResultSection";
 import { InstructionSetSection } from "@/components/sections/InstructionSetSection";
-import { RefreshCw, Download, Star, Upload, Edit } from "lucide-react";
+import { RefreshCw, Download, Star, Upload, Edit, Save } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -30,23 +30,25 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CreateByText from "@/features/create_your_own/components/create_by_text";
 import { AssemblyLine } from "@/features/create_your_own/components/constants";
+import toast, { Toaster } from "react-hot-toast";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
 
 export default function Home() {
-  // Input mode state
   const [activeTab, setActiveTab] = useState<string>("upload");
 
-  // Common state between modes
   const [inputMode, setInputMode] = useState<"before" | "results">("before");
   const [inputSource, setInputSource] = useState<"upload" | "create">("upload");
 
-  // Upload-specific state
   const [files, setFiles] = useState<File[]>([]);
   const [sicFile, setSicFile] = useState<string | null | File>(null);
 
-  // Create-specific state
   const [assemblyLines, setAssemblyLines] = useState<AssemblyLine[]>([]);
 
-  // Processing results state
   const [intermediateFile, setIntermediateFile] = useState<any>(null);
   const [parsedData, setParsedData] = useState<any>(null);
   const [locationCounterAssigned, setLocationCounterAssigned] =
@@ -55,6 +57,9 @@ export default function Home() {
   const [assembledCode, setAssembledCode] = useState<any>(null);
   const [hteRecords, setHteRecords] = useState<HTERecord[]>([]);
   const [formattedDisplayCode, setFormattedDisplayCode] = useState<string>("");
+
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const [projectName, setProjectName] = useState("");
 
   // Reset all state
   const resetState = () => {
@@ -70,7 +75,6 @@ export default function Home() {
     setFormattedDisplayCode("");
   };
 
-  // Handle file reading
   function handleReadFile() {
     if (files.length > 0) {
       const file = files[0];
@@ -87,7 +91,6 @@ export default function Home() {
     }
   }
 
-  // Handle assembly from create-by-text
   function handleAssembleFromText() {
     if (assemblyLines.length > 0) {
       // Convert assembly lines to text format for processing
@@ -103,58 +106,19 @@ export default function Home() {
       setInputSource("create");
       handleConvert(textContent);
     } else {
-      alert("Please add some assembly code first");
+      toast.error("Please enter assembly code to convert.", {
+        style: {
+          borderRadius: "10px",
+          background: "#333",
+          color: "#fff",
+        },
+      });
     }
   }
 
-  // Common conversion function for both upload and create modes
   function handleConvert(content: any) {
-    console.log("Converting content:", content);
+    setFormattedDisplayCode(content);
 
-    // Format the content with line numbers for display
-    const lines = content.split("\n");
-    let lineNumber = 10; // Start line numbers at 10
-    const formattedLines = lines
-      .map((line: any) => {
-        // Skip empty lines
-        if (line.trim() === "") return "";
-
-        // Parse the line into components
-        const parts = line
-          .trim()
-          .split(/\s+/)
-          .filter((p: any) => p);
-
-        let label = "",
-          opcode = "",
-          operand = "";
-
-        if (line.startsWith("\t") || line.startsWith(" ")) {
-          // No label
-          opcode = parts[0] || "";
-          operand = parts.slice(1).join(" ");
-        } else {
-          // Has label
-          label = parts[0] || "";
-          opcode = parts[1] || "";
-          operand = parts.slice(2).join(" ");
-        }
-
-        // Format the line with number and aligned fields
-        const formattedLine = `${lineNumber
-          .toString()
-          .padEnd(5)} ${label.padEnd(8)} ${opcode.padEnd(8)} ${operand}`;
-
-        // Increment line number for next line
-        lineNumber += 10;
-
-        return formattedLine;
-      })
-      .join("\n");
-
-    setFormattedDisplayCode(formattedLines);
-
-    // Continue with the existing processing
     const parsed = parseIntermediateFile(content);
     console.log("Parsed data:", parsed);
     setParsedData(parsed);
@@ -172,7 +136,6 @@ export default function Home() {
     setHteRecords(records);
   }
 
-  // Download HTE records
   const downloadHTERecords = () => {
     if (!hteRecords || hteRecords.length === 0) return;
 
@@ -187,6 +150,69 @@ export default function Home() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
+
+  function handleAddingCodeToLocal() {
+    if (!projectName.trim()) {
+      toast.error("Please enter a project name", {
+        style: {
+          borderRadius: "10px",
+          background: "#333",
+          color: "#fff",
+        },
+      });
+      return;
+    }
+
+    // Determine which code to save based on input source
+    let codeToSave;
+    if (inputSource === "create") {
+      // If created directly, use the assemblyLines
+      codeToSave = assemblyLines;
+    } else {
+      // If uploaded, convert parsed data to the required format
+      codeToSave = parsedData[0].map((item: any) => ({
+        label: item.label || "",
+        opcode: item.opcode || "",
+        operand: item.operand || "",
+        prefix: "",
+        error: "",
+      }));
+    }
+
+    // Get existing saved projects from local storage
+    const existingSavedProjects = JSON.parse(
+      localStorage.getItem("savedProjects") || "[]"
+    );
+
+    // Create a new project object
+    const newProject = {
+      name: projectName,
+      code: codeToSave,
+      date: new Date().toISOString(),
+    };
+
+    // Add new project to the array
+    existingSavedProjects.push(newProject);
+
+    // Save back to local storage
+    localStorage.setItem(
+      "savedProjects",
+      JSON.stringify(existingSavedProjects)
+    );
+
+    // Show success toast
+    toast.success("Project saved successfully!", {
+      style: {
+        borderRadius: "10px",
+        background: "#333",
+        color: "#fff",
+      },
+    });
+
+    // Reset state and close popover
+    setProjectName("");
+    setIsPopoverOpen(false);
+  }
 
   // Render input form (upload or create)
   if (inputMode === "before") {
@@ -259,10 +285,35 @@ export default function Home() {
             <RefreshCw className="h-4 w-4" />
             Start Over
           </Button>
-          <Button variant="secondary">
-            <Star className="mr-2 h-4 w-4" />
-            Analyze code by AI
-          </Button>
+          <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="secondary">
+                <Save className="mr-2 h-4 w-4" />
+                save code
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80">
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium leading-none">Save Project</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Enter a name for your project
+                  </p>
+                </div>
+                <div className="grid gap-2">
+                  <Input
+                    id="project-name"
+                    placeholder="Project Name"
+                    value={projectName}
+                    onChange={(e) => setProjectName(e.target.value)}
+                  />
+                  <Button onClick={handleAddingCodeToLocal} className="w-full">
+                    Save Project
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
@@ -281,23 +332,6 @@ export default function Home() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left column - Primary result */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Formatted Display Code */}
-          {/* {formattedDisplayCode && (
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-xl font-bold">
-                  Formatted Assembly Code
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <pre className="font-mono text-sm whitespace-pre-wrap bg-slate-950 p-4 rounded-md overflow-auto">
-                  {formattedDisplayCode}
-                </pre>
-              </CardContent>
-            </Card>
-          )} */}
-
-          {/* Assembled Code */}
           {hteRecords && hteRecords.length > 0 && (
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -341,18 +375,14 @@ export default function Home() {
             <AssembledCodeSection assembledCode={assembledCode} />
           )}
 
-          {/* Instruction Set moved under assembly code */}
           <InstructionSetSection />
         </div>
 
-        {/* Right column - Supporting data */}
         <div className="space-y-6">
-          {/* Symbol Table */}
           {symbolTable && Object.keys(symbolTable).length > 0 && (
             <SymbolTableSection symbolTable={symbolTable} />
           )}
 
-          {/* Pass 1 Results */}
           {locationCounterAssigned && (
             <IntermediateResultSection
               parsedData={locationCounterAssigned}
@@ -367,7 +397,6 @@ export default function Home() {
             />
           )}
 
-          {/* Original Parsed Data */}
           {parsedData && parsedData[0] && (
             <IntermediateResultSection
               parsedData={parsedData[0]}
@@ -382,6 +411,7 @@ export default function Home() {
           )}
         </div>
       </div>
+      <Toaster position="top-right" />
     </div>
   );
 }

@@ -1,7 +1,6 @@
 export function assignLocationCounters(parsedLines: any, startAddress?: any) {
   const directives = ["START", "BASE", "NOBASE", "EQU"];
 
-  // Find the START directive to get the starting address if not provided
   if (
     !startAddress &&
     parsedLines.length > 0 &&
@@ -16,7 +15,6 @@ export function assignLocationCounters(parsedLines: any, startAddress?: any) {
   for (let i = 0; i < parsedLines.length; i++) {
     const line = parsedLines[i];
 
-    // Fix the END directive issue
     if (
       line.label === "END" ||
       (line.opcode && line.opcode.toUpperCase() === "END")
@@ -24,12 +22,12 @@ export function assignLocationCounters(parsedLines: any, startAddress?: any) {
       if (line.label === "END") {
         line.label = "";
         line.opcode = "END";
-        // If the operand contains an address, keep it
+
         if (line.operand === "End" && line.originalLine.includes("0030")) {
           line.operand = "0030";
         }
       }
-      // END directive doesn't increment LOCCTR
+
       line.loc = locctr.toString(16).toUpperCase().padStart(4, "0");
       continue;
     }
@@ -37,26 +35,23 @@ export function assignLocationCounters(parsedLines: any, startAddress?: any) {
     const opcode = line.opcode ? line.opcode.toUpperCase().trim() : "";
     const operand = line.operand ? line.operand.trim() : "";
 
-    // Save current location counter value for this line
     line.loc = locctr.toString(16).toUpperCase().padStart(4, "0");
 
-    // Process based on opcode
     if (opcode === "START") {
-      // START directive already processed for initial LOCCTR
       continue;
     } else if (opcode === "WORD") {
-      locctr += 3; // WORD is 3 bytes in SIC/XE
+      locctr += 3;
     } else if (opcode === "RESW") {
       const count = parseInt(operand);
       if (!isNaN(count)) {
-        locctr += 3 * count; // Each word is 3 bytes in SIC/XE
+        locctr += 3 * count;
       } else {
         throw new Error(`Invalid RESW operand at line ${i}: ${operand}`);
       }
     } else if (opcode === "RESB") {
       const count = parseInt(operand);
       if (!isNaN(count)) {
-        locctr += count; // RESB reserves exactly the number of bytes specified
+        locctr += count;
       } else {
         throw new Error(`Invalid RESB operand at line ${i}: ${operand}`);
       }
@@ -64,21 +59,19 @@ export function assignLocationCounters(parsedLines: any, startAddress?: any) {
       console.log("BYTE OPERAND ----------------- ", operand);
       if (operand.startsWith("C'") && operand.endsWith("'")) {
         const str = operand.slice(2, -1);
-        locctr += str.length; // Each character takes 1 byte
+        locctr += str.length;
       } else if (operand.startsWith("X'") && operand.endsWith("'")) {
         const hex = operand.slice(2, -1);
-        locctr += Math.ceil(hex.length / 2); // Each pair of hex digits takes 1 byte
+        locctr += Math.ceil(hex.length / 2);
       } else {
         throw new Error(`Invalid BYTE format at line ${i}: ${operand}`);
       }
     } else if (opcode === "ORG") {
-      // ORG directive - set LOCCTR to the value of the operand
       try {
         const orgValue = parseInt(operand, 16);
         if (!isNaN(orgValue)) {
           locctr = orgValue;
         } else {
-          // If it's a symbol, we would need a symbol table here
           throw new Error(
             `Unsupported ORG operand format at line ${i}: ${operand}`
           );
@@ -89,7 +82,6 @@ export function assignLocationCounters(parsedLines: any, startAddress?: any) {
     } else if (directives.includes(opcode)) {
       continue;
     } else if (opcode) {
-      // Handle regular instructions
       let actualOpcode = opcode.startsWith("+") ? opcode.slice(1) : opcode;
       let format =
         instructionSet[
@@ -101,8 +93,6 @@ export function assignLocationCounters(parsedLines: any, startAddress?: any) {
           `Unknown opcode '${opcode}' at line ${i}: ${line.originalLine}`
         );
       }
-
-      // Format 4 instructions start with '+'
       if (opcode.startsWith("+")) {
         locctr += 4;
       } else {
@@ -127,7 +117,6 @@ export function createSymbolTable(parsedLines: any[]) {
     }
   }
 
-  // Second pass: Process EQU directives now that other symbols are defined
   for (const line of parsedLines) {
     if (
       line.label &&
@@ -135,20 +124,16 @@ export function createSymbolTable(parsedLines: any[]) {
       line.opcode &&
       line.opcode.toUpperCase() === "EQU"
     ) {
-      // Try to parse as a hex value first
       const operandValue = parseInt(line.operand, 16);
 
       if (!isNaN(operandValue)) {
-        // It's a numeric value
         symbolTable[line.label] = operandValue
           .toString(16)
           .toUpperCase()
           .padStart(4, "0");
       } else if (symbolTable[line.operand]) {
-        // It references another symbol
         symbolTable[line.label] = symbolTable[line.operand];
       } else {
-        // Unsupported operand format or expression - default to current location
         symbolTable[line.label] = line.loc;
       }
     }

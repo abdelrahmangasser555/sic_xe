@@ -17,7 +17,8 @@ import { AssemblyLine, Direction, TEMPLATES } from "./constants";
 import { Play } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-
+import toast, { Toaster } from "react-hot-toast";
+import { Button } from "@/components/ui/button";
 interface CreateByTextProps {
   state?: AssemblyLine[];
   setState?: (lines: AssemblyLine[]) => void;
@@ -124,6 +125,14 @@ export default function CreateByText({
       const newLines = [...localLines];
       newLines.splice(index, 1);
       setLocalLines(newLines);
+      toast.success("Line removed successfully", {
+        icon: "🗑️",
+        style: {
+          borderRadius: "10px",
+          background: "#333",
+          color: "#fff",
+        },
+      });
     },
     [localLines]
   );
@@ -157,7 +166,26 @@ export default function CreateByText({
     const { validLines, isValid } = validateLines();
 
     if (isValid) {
+      toast.success("Program is valid!", {
+        icon: "👏",
+        style: {
+          borderRadius: "10px",
+          background: "#333",
+          color: "#fff",
+        },
+      });
       updateParentState(validLines);
+    }
+
+    if (!isValid) {
+      toast.error("Program has errors. Please fix them.", {
+        icon: "❌",
+        style: {
+          borderRadius: "10px",
+          background: "#333",
+          color: "#fff",
+        },
+      });
     }
     return { isValid, validLines };
   };
@@ -170,16 +198,29 @@ export default function CreateByText({
         setLocalLines(validLines);
         onSave(validLines);
       } else {
-        alert("Program is valid and can be saved!");
+        toast.success("Program is valid and can be saved!", {
+          icon: "👏",
+          style: {
+            borderRadius: "10px",
+            background: "#333",
+            color: "#fff",
+          },
+        });
       }
     } else {
-      alert("Please fix errors before saving");
+      toast.error("Please fix errors before saving", {
+        style: {
+          borderRadius: "10px",
+          background: "#333",
+          color: "#fff",
+        },
+      });
     }
   };
 
   return (
     <Card className="w-full">
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between  w-[100%]">
         <CardTitle>Create SIC/XE Assembly Program</CardTitle>
         <TemplateSelector onApplyTemplate={handleApplyTemplate} />
       </CardHeader>
@@ -196,7 +237,7 @@ export default function CreateByText({
           <div className="w-40">OPCODE</div>
           <div className="w-20">PREFIX</div>
           <div className="w-60">OPERAND</div>
-          <div className="w-36">ACTIONS</div>
+          <div className="w-[25vw] flex items-center justify-end ">ACTIONS</div>
         </div>
 
         <div className="space-y-2">
@@ -226,10 +267,15 @@ export default function CreateByText({
         <ProgramActions
           onValidate={handleValidate}
           onSave={handleSave}
-          saveLabel="Assemble Program"
-          saveIcon={<Play className="mr-2 h-4 w-4" />}
+          saveLabel="Assemble Code"
+          saveIcon={<Play className="h-4 w-4" />}
         />
       </CardFooter>
+      <Toaster
+        toastOptions={{
+          className: "bg-gray-800 text-white",
+        }}
+      />
     </Card>
   );
 }

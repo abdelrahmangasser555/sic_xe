@@ -16,11 +16,16 @@ export const ProgramActions: React.FC<ProgramActionsProps> = ({
   saveIcon = <Save className="mr-2 h-4 w-4" />,
 }) => {
   return (
-    <div className="flex justify-between w-full">
+    <div className="flex justify-end gap-x-2 w-full">
       <Button variant="outline" onClick={onValidate}>
+        <Save />
         Validate and save
       </Button>
-      <Button onClick={onSave}>
+      <Button
+        onClick={onSave}
+        variant={"success"}
+        className="flex items-center justify-center"
+      >
         {saveIcon} {saveLabel}
       </Button>
     </div>
