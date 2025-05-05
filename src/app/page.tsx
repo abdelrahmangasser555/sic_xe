@@ -37,6 +37,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
+import ChatSicXE from "@/features/ask_sic_xe/components/ask_ai_chat_wrapper";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<string>("upload");
@@ -51,6 +52,7 @@ export default function Home() {
 
   const [intermediateFile, setIntermediateFile] = useState<any>(null);
   const [parsedData, setParsedData] = useState<any>(null);
+  const [assembledAsText, setAssembledAsText] = useState<any>("");
   const [locationCounterAssigned, setLocationCounterAssigned] =
     useState<any>(null);
   const [symbolTable, setSymbolTable] = useState<Record<string, string>>({});
@@ -131,6 +133,13 @@ export default function Home() {
 
     const withObjectCode = generateObjectCode(withLocationCounters);
     setAssembledCode(withObjectCode);
+    const textContent = withObjectCode
+      .map(
+        (line: any, index: number) =>
+          `${index}\t${line.label}\t${line.opcode}\t${line.operand}`
+      )
+      .join("\n");
+    setAssembledAsText(textContent);
 
     const records = generateHTERecords(withObjectCode);
     setHteRecords(records);
@@ -287,9 +296,9 @@ export default function Home() {
           </Button>
           <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
             <PopoverTrigger asChild>
-              <Button variant="secondary">
+              <Button variant="success">
                 <Save className="mr-2 h-4 w-4" />
-                save code
+                save as template
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-80">
@@ -316,7 +325,9 @@ export default function Home() {
           </Popover>
         </div>
       </div>
-
+      <div className="flex flex-col items-center mb-6">
+        <ChatSicXE code={formattedDisplayCode} />
+      </div>
       {/* File information */}
       <div className="mb-6 text-white">
         <p className="text-lg">
