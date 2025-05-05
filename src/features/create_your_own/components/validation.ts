@@ -56,7 +56,7 @@ export const validateLine = (
 
 export const validateAllLines = (
   lines: AssemblyLine[]
-): { validLines: AssemblyLine[]; isValid: boolean } => {
+): { validLines: AssemblyLine[]; isValid: boolean; errorSummary: string } => {
   const labels = lines
     .filter((line) => line.label && line.label.trim() !== "")
     .map((line) => line.label.trim());
@@ -68,5 +68,23 @@ export const validateAllLines = (
 
   const isValid = validLines.every((line) => !line.error);
 
-  return { validLines, isValid };
+  // Generate a summary of errors for display in the UI
+  let errorSummary = "";
+  if (!isValid) {
+    const errors = validLines
+      .map((line, index) =>
+        line.error ? `Line ${index + 1}: ${line.error}` : null
+      )
+      .filter(Boolean);
+
+    // Limit to first 3 errors to keep the summary concise
+    const displayErrors = errors.slice(0, 3);
+    if (errors.length > 3) {
+      displayErrors.push(`...and ${errors.length - 3} more errors`);
+    }
+
+    errorSummary = displayErrors.join(". ");
+  }
+
+  return { validLines, isValid, errorSummary };
 };
