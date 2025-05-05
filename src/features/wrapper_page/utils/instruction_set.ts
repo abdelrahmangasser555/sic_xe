@@ -270,6 +270,70 @@ export const instructionSet = [
     opcode: "4C",
     description: "Write Device",
   },
+  {
+    mnemonic: "BASE",
+    format: [3, 4],
+    size: 3,
+    opcode: "00",
+    description: "Base Register",
+  },
+  {
+    mnemonic: "TARGET",
+    format: [3, 4],
+    size: 3,
+    opcode: "00",
+    description: "Target Address",
+  },
+  {
+    mnemonic: "NEXT",
+    format: [3, 4],
+    size: 3,
+    opcode: "00",
+    description: "Next Address",
+  },
+  {
+    mnemonic: "END",
+    format: [0],
+    size: 0,
+    opcode: "00",
+    description: "End of program",
+  },
+  {
+    mnemonic: "WORD",
+    format: [0],
+    size: 0,
+    opcode: "00",
+    description: "Word directive",
+  },
+  {
+    mnemonic: "BYTE",
+    format: [0],
+    size: 0,
+    opcode: "00",
+    description: "Byte directive",
+  },
+  {
+    mnemonic: "RESW",
+    format: [0],
+    size: 0,
+    opcode: "00",
+    description: "Reserve word",
+  },
+  {
+    mnemonic: "RESB",
+    format: [0],
+    size: 0,
+    opcode: "00",
+    description: "Reserve byte",
+  },
+  // add lds
+  {
+    mnemonic: "LDS",
+    format: [3, 4],
+    size: 3,
+    opcode: "6C",
+    description: "Load Stack Pointer",
+  },
 ];
 
 export const instructionMnemonics = [
@@ -318,4 +382,8 @@ export const instructionMnemonics = [
 
   "BASE",
   "LDB",
+  "TARGET",
+  "NEXT",
+  "WORD",
+  "LDS",
 ];

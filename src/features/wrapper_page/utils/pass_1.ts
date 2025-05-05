@@ -1,3 +1,5 @@
+import { LucideSunDim } from "lucide-react";
+
 export function assignLocationCounters(parsedLines: any, startAddress?: any) {
   const directives = ["START", "BASE", "NOBASE", "EQU"];
 
@@ -201,4 +203,9 @@ const instructionSet = {
   TIXR: 2,
   WD: 3,
   END: 0,
+  TARGET: 0,
+  BASE: 0,
+  NEXT: 0,
+  WORD: 3,
+  RESW: 0,
 };

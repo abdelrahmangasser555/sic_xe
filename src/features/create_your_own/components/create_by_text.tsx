@@ -219,8 +219,8 @@ export default function CreateByText({
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader className="flex flex-row items-center justify-between  w-[100%]">
+    <Card className="w-full overflow-x-auto">
+      <CardHeader className="flex flex-row items-center justify-between  w-[100%] overflow-x-auto">
         <CardTitle>Create SIC/XE Assembly Program</CardTitle>
         <TemplateSelector onApplyTemplate={handleApplyTemplate} />
       </CardHeader>

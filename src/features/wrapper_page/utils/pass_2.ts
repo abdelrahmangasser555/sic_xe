@@ -59,7 +59,6 @@ export function generateObjectCode(parsedLines: any[]) {
       line.objectCode = calculateByteDirectiveObjectCode(operand);
       continue;
     } else if (opcode === "WORD") {
-      // Handle WORD directive - 3 bytes, padded with leading zeros
       const value = parseInt(operand, 10);
       line.objectCode = value.toString(16).toUpperCase().padStart(6, "0");
       continue;
@@ -152,20 +151,42 @@ function generateFormat3Or4ObjectCode(
     if (operand.startsWith("#")) {
       // Immediate addressing
       nixbpe |= 0x10; // Set i=1
-      const immediateValue = operand.substring(1);
+      let immediateValue = operand.substring(1);
+
+      // Check for indexed addressing with immediate
+      if (immediateValue.includes(",X")) {
+        nixbpe |= 0x08; // Set x=1
+        immediateValue = immediateValue.split(",")[0].trim();
+      }
 
       if (symbolTable[immediateValue]) {
         address = parseInt(symbolTable[immediateValue], 16);
       } else {
-        address = parseInt(immediateValue, 10);
+        // Try parsing as decimal first
+        const decValue = parseInt(immediateValue, 10);
+        if (!isNaN(decValue)) {
+          address = decValue;
+        } else {
+          // If not a decimal, try as hex
+          address = parseInt(immediateValue, 16);
+        }
       }
     } else if (operand.startsWith("@")) {
       // Indirect addressing
       nixbpe |= 0x20; // Set n=1
-      const symbolName = operand.substring(1);
+      let symbolName = operand.substring(1);
+
+      // Check for indexed addressing with indirect
+      if (symbolName.includes(",X")) {
+        nixbpe |= 0x08; // Set x=1
+        symbolName = symbolName.split(",")[0].trim();
+      }
 
       if (symbolTable[symbolName]) {
         address = parseInt(symbolTable[symbolName], 16);
+      } else if (!isNaN(parseInt(symbolName, 16))) {
+        // Try to parse as a hex value if not found in symbol table
+        address = parseInt(symbolName, 16);
       }
     } else {
       // Direct addressing

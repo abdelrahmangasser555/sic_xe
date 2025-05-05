@@ -38,7 +38,9 @@ import {
 } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import ChatSicXE from "@/features/ask_sic_xe/components/ask_ai_chat_wrapper";
-
+import StatusDot from "@/features/create_your_own/components/pulse_bubble";
+import TestFiles from "@/features/upload_component/components/test_files";
+import { testFiles } from "@/features/wrapper_page/utils/test_files";
 export default function Home() {
   const [activeTab, setActiveTab] = useState<string>("upload");
 
@@ -116,6 +118,13 @@ export default function Home() {
         },
       });
     }
+  }
+
+  function handleConvertFromTestFile(content: string) {
+    setSicFile("Test File");
+    setInputMode("results");
+    setInputSource("upload");
+    handleConvert(content);
   }
 
   function handleConvert(content: any) {
@@ -251,7 +260,8 @@ export default function Home() {
                 </TabsTrigger>
                 <TabsTrigger value="create" className="flex items-center gap-2">
                   <Edit className="h-4 w-4" />
-                  Create Assembly
+                  Create Assembly{" "}
+                  <StatusDot status="success" className="mt-1" />
                 </TabsTrigger>
               </TabsList>
 
@@ -262,6 +272,17 @@ export default function Home() {
                     Process File
                   </Button>
                 )}
+                <h1 className="text-lg font-bold text-white mt-4">
+                  Example Test Files
+                </h1>
+                <p className="text-sm text-neutral-400 mb-2">
+                  Click on any of the test files below to load (hover to preview
+                  code)
+                </p>
+                <TestFiles
+                  files={testFiles}
+                  handleConvert={handleConvertFromTestFile}
+                />
               </TabsContent>
 
               <TabsContent value="create" className="w-full">

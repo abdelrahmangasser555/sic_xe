@@ -23,7 +23,9 @@ export async function POST(req: Request) {
 
 
         always answer in markdown format and help the user as much as he can 
-        and in the markdown format tables and headings and quotations if needed 
+        and in the markdown format headings and quotations and so on 
+
+        the only thing you don't use is a table in markdown 
       `,
   });
 
