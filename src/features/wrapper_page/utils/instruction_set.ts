@@ -1,3 +1,5 @@
+import { OPCODES } from "@/features/create_your_own/components/constants";
+
 export const instructionSet = [
   {
     mnemonic: "FIX",
@@ -326,13 +328,19 @@ export const instructionSet = [
     opcode: "00",
     description: "Reserve byte",
   },
-  // add lds
   {
     mnemonic: "LDS",
     format: [3, 4],
     size: 3,
     opcode: "6C",
     description: "Load Stack Pointer",
+  },
+  {
+    mnemonic: "NUM",
+    format: [3],
+    size: 3,
+    opcode: "00",
+    description: "Numeric literal",
   },
 ];
 
@@ -386,4 +394,5 @@ export const instructionMnemonics = [
   "NEXT",
   "WORD",
   "LDS",
+  "NUM",
 ];

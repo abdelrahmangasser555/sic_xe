@@ -1,14 +1,15 @@
-export interface HTERecord {
-  type: "H" | "T" | "E";
+export interface HTMERecord {
+  type: "H" | "T" | "E" | "M";
   content: string;
   address?: string;
   length?: string;
   programName?: string;
   objectCodes?: string;
+  modification?: string;
 }
 
-export function generateHTERecords(assembledCode: any[]): HTERecord[] {
-  const records: HTERecord[] = [];
+export function generateHTMERecords(assembledCode: any[]): HTMERecord[] {
+  const records: HTMERecord[] = [];
   if (!assembledCode || assembledCode.length === 0) return records;
 
   const firstLine = assembledCode[0];
@@ -152,11 +153,34 @@ export function generateHTERecords(assembledCode: any[]): HTERecord[] {
     });
   }
 
+  for (let i = 0; i < assembledCode.length; i++) {
+    const line = assembledCode[i];
+    if (line.opcode?.startsWith("+") && line.objectCode) {
+      const modAddress = (parseInt(line.loc, 16) + 1)
+        .toString(16)
+        .padStart(6, "0")
+        .toUpperCase();
+      records.push({
+        type: "M",
+        content: `M^${modAddress}^05`,
+        address: modAddress,
+        length: "05",
+        modification: "+",
+      });
+    }
+  }
+
   records.push({
     type: "E",
     content: `E^${startAddress.padStart(6, "0")}`,
     address: startAddress,
   });
 
+  console.log("HTME Records: ", records);
+
   return records;
 }
+
+// For backward compatibility
+export const generateHTERecords = generateHTMERecords;
+export type HTERecord = HTMERecord;

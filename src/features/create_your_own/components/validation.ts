@@ -7,7 +7,6 @@ export const validateLine = (
 ): string => {
   let error = "";
 
-  // Validate START directive
   if (index === 0 && line.opcode === "START") {
     if (!line.label) {
       error = "START directive requires a program name label";
@@ -17,7 +16,6 @@ export const validateLine = (
     }
   }
 
-  // Validate END directive
   if (line.opcode === "END") {
     if (!labels.includes(line.operand)) {
       error = "END operand must reference a valid label";
@@ -68,7 +66,6 @@ export const validateAllLines = (
 
   const isValid = validLines.every((line) => !line.error);
 
-  // Generate a summary of errors for display in the UI
   let errorSummary = "";
   if (!isValid) {
     const errors = validLines

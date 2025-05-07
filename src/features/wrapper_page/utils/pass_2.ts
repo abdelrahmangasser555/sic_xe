@@ -79,15 +79,11 @@ export function generateObjectCode(parsedLines: any[]) {
       continue;
     }
 
-    // Generate object code based on instruction format
     if (instruction.format.includes(1)) {
-      // Format 1: Just the opcode
       line.objectCode = instruction.opcode;
     } else if (instruction.format.includes(2)) {
-      // Format 2: Opcode + register operands
       line.objectCode = generateFormat2ObjectCode(instruction.opcode, operand);
     } else {
-      // Format 3/4: Generate format 3 or 4 object code with addressing modes
       const nextLoc =
         i < parsedLines.length - 1
           ? parseInt(parsedLines[i + 1].loc, 16)
@@ -108,7 +104,6 @@ export function generateObjectCode(parsedLines: any[]) {
   return parsedLines;
 }
 
-// Helper function for Format 2 instructions
 function generateFormat2ObjectCode(opcode: string, operand: string): string {
   const operandParts = operand.split(",").map((part) => part.trim());
 
@@ -128,7 +123,6 @@ function generateFormat2ObjectCode(opcode: string, operand: string): string {
   return `${opcode}${r1}${r2}`;
 }
 
-// Helper function for Format 3/4 instructions
 function generateFormat3Or4ObjectCode(
   opcode: string,
   operand: string,

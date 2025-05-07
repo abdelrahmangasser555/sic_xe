@@ -65,7 +65,6 @@ export default function Home() {
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [projectName, setProjectName] = useState("");
 
-  // Reset all state
   const resetState = () => {
     setInputMode("before");
     setFiles([]);
@@ -379,7 +378,7 @@ export default function Home() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-xl font-bold">
-                  Object Program (HTE Records)
+                  Object Program (HTME Records)
                 </CardTitle>
                 <Button
                   variant="outline"

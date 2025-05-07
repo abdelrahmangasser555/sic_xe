@@ -41,13 +41,13 @@ export const testFiles: any = [
 30  AGAIN   COMP    #0          Compare A with 0
 40          JEQ     DONE        If 0, exit loop
 50          STA     OUTPUT      Store current value
-60          SUB     ONE         Decrement
-70          STA     COUNT       Update COUNT
+60          +SUB     ONE         Decrement
+70          +STA     COUNT       Update COUNT
 80          J       AGAIN       Repeat loop
 90  DONE    RSUB                Return
 100 COUNT   WORD     5
 110 ONE     WORD     1
-120 OUTPUT  RESW     1
+120 OUTPUT  +RESW     1
 130         END     LOOPX
 `,
   },

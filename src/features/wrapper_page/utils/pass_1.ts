@@ -208,4 +208,5 @@ const instructionSet = {
   NEXT: 0,
   WORD: 3,
   RESW: 0,
+  NUM: 3,
 };
