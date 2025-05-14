@@ -129,13 +129,15 @@ export default function Home() {
   function handleConvert(content: any) {
     setFormattedDisplayCode(content);
 
+    console.log("Input content:", content);
+
     const parsed = parseIntermediateFile(content);
     console.log("Parsed data:", parsed);
     setParsedData(parsed);
 
     const withLocationCounters = assignLocationCounters(parsed[0]);
     setLocationCounterAssigned(withLocationCounters);
-
+    console.log("With location counters:", withLocationCounters);
     const symbols = createSymbolTable(withLocationCounters);
     setSymbolTable(symbols);
 

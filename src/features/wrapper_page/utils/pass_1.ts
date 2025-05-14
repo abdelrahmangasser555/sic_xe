@@ -2,6 +2,8 @@ import { LucideSunDim } from "lucide-react";
 
 export function assignLocationCounters(parsedLines: any, startAddress?: any) {
   const directives = ["START", "BASE", "NOBASE", "EQU"];
+  // Add literal instructions to be recognized
+  const literalInstructions = ["LITLD", "LITAD", "LITSB", "LITCMP"];
 
   if (
     !startAddress &&
@@ -13,6 +15,8 @@ export function assignLocationCounters(parsedLines: any, startAddress?: any) {
 
   let locctr = startAddress ? parseInt(startAddress, 16) : 0;
   if (isNaN(locctr)) locctr = 0;
+
+  const literalTable: Record<string, number> = {};
 
   for (let i = 0; i < parsedLines.length; i++) {
     const line = parsedLines[i];
@@ -61,8 +65,10 @@ export function assignLocationCounters(parsedLines: any, startAddress?: any) {
       console.log("BYTE OPERAND ----------------- ", operand);
       if (operand.startsWith("C'") && operand.endsWith("'")) {
         const str = operand.slice(2, -1);
+
         locctr += str.length;
       } else if (operand.startsWith("X'") && operand.endsWith("'")) {
+        console.log("enetered X' ", operand);
         const hex = operand.slice(2, -1);
         locctr += Math.ceil(hex.length / 2);
       } else {
@@ -83,6 +89,15 @@ export function assignLocationCounters(parsedLines: any, startAddress?: any) {
       }
     } else if (directives.includes(opcode)) {
       continue;
+    } else if (literalInstructions.includes(opcode)) {
+      locctr += 4;
+
+      if (operand && operand.includes(",")) {
+        const literalPart = operand.split(",")[1].trim();
+        if (!literalTable[literalPart]) {
+          literalTable[literalPart] = 0; // Will be assigned proper address in a second pass
+        }
+      }
     } else if (opcode) {
       let actualOpcode = opcode.startsWith("+") ? opcode.slice(1) : opcode;
       let format =
@@ -209,4 +224,9 @@ const instructionSet = {
   WORD: 3,
   RESW: 0,
   NUM: 3,
+  // Update literal instructions to have a format of 4 bytes
+  LITAD: 4,
+  LITSB: 4,
+  LITLD: 4,
+  LITCMP: 4,
 };

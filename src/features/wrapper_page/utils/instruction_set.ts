@@ -1,5 +1,3 @@
-import { OPCODES } from "@/features/create_your_own/components/constants";
-
 export const instructionSet = [
   {
     mnemonic: "FIX",
@@ -342,6 +340,34 @@ export const instructionSet = [
     opcode: "00",
     description: "Numeric literal",
   },
+  {
+    mnemonic: "LITAD",
+    format: [4],
+    size: 3,
+    opcode: "BC",
+    description: "Numeric literal",
+  },
+  {
+    mnemonic: "LITSB",
+    format: [4],
+    size: 3,
+    opcode: "8C",
+    description: "Numeric literal",
+  },
+  {
+    mnemonic: "LITLD",
+    format: [4],
+    size: 3,
+    opcode: "E4",
+    description: "Numeric literal",
+  },
+  {
+    mnemonic: "LITCMP",
+    format: [4],
+    size: 3,
+    opcode: "FC",
+    description: "Numeric literal",
+  },
 ];
 
 export const instructionMnemonics = [
@@ -395,4 +421,8 @@ export const instructionMnemonics = [
   "WORD",
   "LDS",
   "NUM",
+  "LITAD",
+  "LITSB",
+  "LITLD",
+  "LITCMP",
 ];

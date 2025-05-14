@@ -1,7 +1,6 @@
 import { instructionSet } from "./instruction_set";
 import { createSymbolTable } from "./pass_1";
 
-// Define register numbers for format 2 instructions
 const registers: Record<string, number> = {
   A: 0,
   X: 1,
@@ -12,27 +11,23 @@ const registers: Record<string, number> = {
   F: 6,
 };
 
-// Generate object code for each instruction
 export function generateObjectCode(parsedLines: any[]) {
-  // Create symbol table from pass 1 output
   const symbolTable = createSymbolTable(parsedLines);
 
-  // Track base register value for base-relative addressing
+  console.log("Symbol Table in pass 2:", symbolTable);
+
   let baseRegisterValue: number | null = null;
 
-  // Process each line
   for (let i = 0; i < parsedLines.length; i++) {
     const line = parsedLines[i];
     const opcode = line.opcode ? line.opcode.toUpperCase().trim() : "";
     const operand = line.operand ? line.operand.trim() : "";
 
-    // Skip if not an actual instruction or directive
     if (!opcode) {
       line.objectCode = "";
       continue;
     }
 
-    // Handle assembler directives
     if (
       opcode === "START" ||
       opcode === "END" ||
@@ -62,16 +57,24 @@ export function generateObjectCode(parsedLines: any[]) {
       const value = parseInt(operand, 10);
       line.objectCode = value.toString(16).toUpperCase().padStart(6, "0");
       continue;
+    } else if (
+      opcode === "LITLD" ||
+      opcode === "LITAD" ||
+      opcode === "LITSB" ||
+      opcode === "LITCMP"
+    ) {
+      line.objectCode = generateLitldObjectCode(operand, opcode);
+      continue;
     }
 
-    // Process machine instructions
     const isFormat4 = opcode.startsWith("+");
     const mnemonic = isFormat4 ? opcode.substring(1) : opcode;
 
-    // Find instruction in instruction set
     const instruction = instructionSet.find(
       (instr) => instr.mnemonic.toUpperCase() === mnemonic.toUpperCase()
     );
+
+    console.log("this is the extracted opcodes " + instruction);
 
     if (!instruction) {
       console.error(`Unknown instruction: ${mnemonic} at line ${i}`);
@@ -104,6 +107,78 @@ export function generateObjectCode(parsedLines: any[]) {
   return parsedLines;
 }
 
+function generateLitldObjectCode(
+  operand: string,
+  instructionType: string
+): string {
+  const parts = operand.split(",").map((part) => part.trim());
+
+  if (parts.length !== 2) {
+    console.error("Literal instruction requires two operands:", operand);
+    return "";
+  }
+
+  const registerName = parts[0].trim();
+  const literalPart = parts[1].trim();
+
+  console.log("Register Name:", registerName);
+  console.log("Literal Part:", literalPart);
+
+  const registerValue = registers[registerName] || 0;
+
+  let literalValue = 0;
+  if (literalPart.startsWith("=X'") && literalPart.endsWith("'")) {
+    const hexValue = literalPart.substring(3, literalPart.length - 1);
+    literalValue = parseInt(hexValue, 16);
+    console.log("Parsed hex literal:", hexValue, "->", literalValue);
+  } else if (literalPart.startsWith("=C'") && literalPart.endsWith("'")) {
+    const charValue = literalPart.substring(3, literalPart.length - 1);
+    for (let i = 0; i < charValue.length; i++) {
+      literalValue = (literalValue << 8) | charValue.charCodeAt(i);
+    }
+    console.log("Parsed character literal:", charValue, "->", literalValue);
+  } else {
+    console.error("Unsupported literal format:", literalPart);
+  }
+
+  // Select the correct opcode based on instruction type
+  let opcodeValue: number;
+  switch (instructionType) {
+    case "LITAD":
+      opcodeValue = 0xbc; // BC in hex
+      break;
+    case "LITSB":
+      opcodeValue = 0x8c; // 8C in hex
+      break;
+    case "LITLD":
+      opcodeValue = 0xe4; // E4 in hex
+      break;
+    case "LITCMP":
+      opcodeValue = 0xfc; // FC in hex
+      break;
+    default:
+      opcodeValue = 0xe4; // Default to LITLD
+  }
+
+  // Calculate object code as unsigned 32-bit value
+  // First byte: opcode (8 bits)
+  // Next 4 bits: register code
+  // Last 20 bits: literal value
+
+  const firstByte = opcodeValue.toString(16).padStart(2, "0");
+  const registerAndLiteralBytes = (
+    (registerValue << 20) |
+    (literalValue & 0xfffff)
+  )
+    .toString(16)
+    .padStart(6, "0");
+
+  const objCode = (firstByte + registerAndLiteralBytes).toUpperCase();
+
+  console.log(`Generated object code for ${instructionType}:`, objCode);
+  return objCode;
+}
+
 function generateFormat2ObjectCode(opcode: string, operand: string): string {
   const operandParts = operand.split(",").map((part) => part.trim());
 
@@ -132,123 +207,303 @@ function generateFormat3Or4ObjectCode(
   symbolTable: Record<string, string>,
   baseRegisterValue: number | null
 ): string {
+  console.group(
+    `SIC/XE Object Code Generation - ${isFormat4 ? "Format 4" : "Format 3"}`
+  );
+  console.log(`Input: opcode=${opcode}, operand=${operand || "(none)"}`);
+  console.log(
+    `Location: current=0x${currentLoc
+      .toString(16)
+      .toUpperCase()}, next=0x${nextLoc.toString(16).toUpperCase()}`
+  );
+  console.log(
+    `Base register value: ${
+      baseRegisterValue !== null
+        ? "0x" + baseRegisterValue.toString(16).toUpperCase()
+        : "not set"
+    }`
+  );
+
+  // Parse the opcode hex value
   let opcodeValue = parseInt(opcode, 16);
-  let nixbpe = 0;
+  console.log(`Opcode value: 0x${opcodeValue.toString(16).toUpperCase()}`);
+
+  let n = 0,
+    i = 0,
+    x = 0,
+    b = 0,
+    p = 0,
+    e = 0;
   let address = 0;
 
-  // Parse operand and set flags
+  // Set e flag for format 4
+  if (isFormat4) {
+    e = 1;
+    console.log("Extended format (e=1)");
+  }
+
+  // Parse operand to set addressing flags
+  console.group("Addressing mode determination:");
   if (operand === "") {
-    // Handle RSUB which has no operand
-    nixbpe = 0x30; // Set n=1, i=1
+    // Simple addressing with no operand (like RSUB)
+    n = 1;
+    i = 1;
+    console.log("No operand - Simple addressing (n=1, i=1)");
   } else {
-    // Check addressing modes
+    // Check if indexed addressing
+    if (operand.includes(",X")) {
+      x = 1;
+      operand = operand.split(",")[0].trim();
+      console.log("Indexed addressing detected (x=1), operand=", operand);
+    }
+
+    // Immediate addressing (#)
     if (operand.startsWith("#")) {
-      // Immediate addressing
-      nixbpe |= 0x10; // Set i=1
+      i = 1;
+      n = 0;
       let immediateValue = operand.substring(1);
+      console.log(`Immediate addressing (n=0, i=1), value=${immediateValue}`);
 
-      // Check for indexed addressing with immediate
-      if (immediateValue.includes(",X")) {
-        nixbpe |= 0x08; // Set x=1
-        immediateValue = immediateValue.split(",")[0].trim();
-      }
-
+      // Try to parse as a symbol from symbol table
       if (symbolTable[immediateValue]) {
         address = parseInt(symbolTable[immediateValue], 16);
+        console.log(
+          `Symbol found in table: ${immediateValue} → 0x${address
+            .toString(16)
+            .toUpperCase()}`
+        );
       } else {
-        // Try parsing as decimal first
+        // Try to parse as a decimal number
         const decValue = parseInt(immediateValue, 10);
         if (!isNaN(decValue)) {
           address = decValue;
+          console.log(
+            `Parsed as decimal: ${immediateValue} → ${address} (0x${address
+              .toString(16)
+              .toUpperCase()})`
+          );
         } else {
-          // If not a decimal, try as hex
+          // Try to parse as a hex number
           address = parseInt(immediateValue, 16);
+          console.log(
+            `Parsed as hex: ${immediateValue} → 0x${address
+              .toString(16)
+              .toUpperCase()}`
+          );
         }
       }
-    } else if (operand.startsWith("@")) {
-      // Indirect addressing
-      nixbpe |= 0x20; // Set n=1
-      let symbolName = operand.substring(1);
+    }
+    // Indirect addressing (@)
+    else if (operand.startsWith("@")) {
+      i = 0;
+      n = 1;
+      let indirectValue = operand.substring(1);
+      console.log(`Indirect addressing (n=1, i=0), value=${indirectValue}`);
 
-      // Check for indexed addressing with indirect
-      if (symbolName.includes(",X")) {
-        nixbpe |= 0x08; // Set x=1
-        symbolName = symbolName.split(",")[0].trim();
+      if (symbolTable[indirectValue]) {
+        address = parseInt(symbolTable[indirectValue], 16);
+        console.log(
+          `Symbol found in table: ${indirectValue} → 0x${address
+            .toString(16)
+            .toUpperCase()}`
+        );
+      } else if (!isNaN(parseInt(indirectValue, 16))) {
+        address = parseInt(indirectValue, 16);
+        console.log(
+          `Parsed as hex: ${indirectValue} → 0x${address
+            .toString(16)
+            .toUpperCase()}`
+        );
       }
+    }
+    // Direct addressing
+    else {
+      i = 1;
+      n = 1;
+      console.log(`Direct addressing (n=1, i=1), operand=${operand}`);
 
-      if (symbolTable[symbolName]) {
-        address = parseInt(symbolTable[symbolName], 16);
-      } else if (!isNaN(parseInt(symbolName, 16))) {
-        // Try to parse as a hex value if not found in symbol table
-        address = parseInt(symbolName, 16);
+      if (symbolTable[operand]) {
+        address = parseInt(symbolTable[operand], 16);
+        console.log(
+          `Symbol found in table: ${operand} → 0x${address
+            .toString(16)
+            .toUpperCase()}`
+        );
+      } else if (!isNaN(parseInt(operand, 16))) {
+        address = parseInt(operand, 16);
+        console.log(
+          `Parsed as hex: ${operand} → 0x${address.toString(16).toUpperCase()}`
+        );
+      }
+    }
+  }
+  console.groupEnd();
+
+  // Calculate final opcode with n and i bits
+  const originalOpcodeValue = opcodeValue;
+  opcodeValue = (opcodeValue & 0xfc) | (n << 1) | i;
+  console.log(
+    `Modified opcode: 0x${originalOpcodeValue
+      .toString(16)
+      .toUpperCase()} → 0x${opcodeValue
+      .toString(16)
+      .toUpperCase()} (after adding n=${n}, i=${i})`
+  );
+
+  let objectCode = "";
+
+  // Format 4 - Extended format
+  if (isFormat4) {
+    console.group("Format 4 object code calculation:");
+    // Build the object code as a string to ensure proper formatting
+    const flagsByte = (x << 7) | (b << 6) | (p << 5) | (e << 4);
+    console.log(
+      `Flags byte: x=${x}, b=${b}, p=${p}, e=${e} → 0x${flagsByte
+        .toString(16)
+        .toUpperCase()}`
+    );
+    console.log(
+      `Address value: 0x${address.toString(16).toUpperCase()} (20 bits)`
+    );
+
+    const objCodeHex =
+      opcodeValue.toString(16).padStart(2, "0") +
+      flagsByte.toString(16).padStart(1, "0") +
+      address.toString(16).padStart(5, "0");
+
+    objectCode = objCodeHex.toUpperCase();
+    console.log(`Final object code: ${objectCode}`);
+    console.groupEnd();
+  }
+  // Format 3
+  else {
+    console.group("Format 3 object code calculation:");
+    let displacement = 0;
+    let addressingMethod = "direct";
+
+    // PC-relative addressing
+    if (
+      !operand.startsWith("#") ||
+      !isNaN(parseInt(operand.substring(1), 10))
+    ) {
+      const pcValue = nextLoc;
+      const disp = address - pcValue;
+
+      console.log(
+        `Checking PC-relative: Target=0x${address
+          .toString(16)
+          .toUpperCase()}, PC=0x${pcValue
+          .toString(16)
+          .toUpperCase()}, disp=${disp} (0x${disp.toString(16).toUpperCase()})`
+      );
+
+      // Check if displacement is within range for PC-relative
+      if (!isNaN(disp) && disp >= -2048 && disp <= 2047) {
+        p = 1;
+        displacement = disp & 0xfff; // Ensure 12-bit 2's complement representation
+        addressingMethod = "PC-relative";
+        console.log(
+          `Using PC-relative addressing (p=1): disp=${disp} → 0x${displacement
+            .toString(16)
+            .toUpperCase()}`
+        );
+      }
+      // Try base-relative addressing if PC-relative is out of range
+      else if (baseRegisterValue !== null) {
+        const baseDisp = address - baseRegisterValue;
+
+        console.log(
+          `Checking BASE-relative: Target=0x${address
+            .toString(16)
+            .toUpperCase()}, BASE=0x${baseRegisterValue
+            .toString(16)
+            .toUpperCase()}, disp=${baseDisp} (0x${baseDisp
+            .toString(16)
+            .toUpperCase()})`
+        );
+
+        if (!isNaN(baseDisp) && baseDisp >= 0 && baseDisp <= 4095) {
+          b = 1;
+          displacement = baseDisp;
+          addressingMethod = "BASE-relative";
+          console.log(
+            `Using BASE-relative addressing (b=1): disp=${baseDisp} → 0x${displacement
+              .toString(16)
+              .toUpperCase()}`
+          );
+        }
+        // Direct addressing as fallback
+        else if (address <= 4095) {
+          displacement = address;
+          console.log(
+            `Using direct addressing: address=0x${address
+              .toString(16)
+              .toUpperCase()}`
+          );
+        } else {
+          console.warn(
+            `⚠️ Address 0x${address
+              .toString(16)
+              .toUpperCase()} is out of range for all addressing modes!`
+          );
+        }
+      }
+      // Direct addressing as fallback
+      else if (address <= 4095) {
+        displacement = address;
+        console.log(
+          `Using direct addressing: address=0x${address
+            .toString(16)
+            .toUpperCase()}`
+        );
+      } else {
+        console.warn(
+          `⚠️ Address 0x${address
+            .toString(16)
+            .toUpperCase()} is out of range and BASE is not set!`
+        );
       }
     } else {
-      // Direct addressing
-      nixbpe |= 0x30; // Set n=1, i=1
-
-      let actualOperand = operand;
-      // Check for indexed addressing
-      if (operand.includes(",X")) {
-        nixbpe |= 0x08; // Set x=1
-        actualOperand = operand.split(",")[0].trim();
-      }
-
-      if (symbolTable[actualOperand]) {
-        address = parseInt(symbolTable[actualOperand], 16);
-      } else if (!isNaN(parseInt(actualOperand, 16))) {
-        address = parseInt(actualOperand, 16);
-      }
+      // For immediate values, use direct displacement
+      displacement = address & 0xfff;
+      console.log(
+        `Using immediate value directly: 0x${address
+          .toString(16)
+          .toUpperCase()} → 0x${displacement.toString(16).toUpperCase()}`
+      );
     }
+
+    // Build the object code as a string to ensure proper formatting
+    const flagsByte = (x << 3) | (b << 2) | (p << 1) | e;
+    console.log(
+      `Flags byte: x=${x}, b=${b}, p=${p}, e=${e} → 0x${flagsByte
+        .toString(16)
+        .toUpperCase()}`
+    );
+    console.log(
+      `Final displacement: 0x${displacement
+        .toString(16)
+        .toUpperCase()} (12 bits)`
+    );
+
+    const objCodeHex =
+      opcodeValue.toString(16).padStart(2, "0") +
+      flagsByte.toString(16).padStart(1, "0") +
+      (displacement & 0xfff).toString(16).padStart(3, "0");
+
+    objectCode = objCodeHex.toUpperCase();
+    console.log(
+      `Final object code: ${objectCode} (using ${addressingMethod} addressing)`
+    );
+    console.groupEnd();
   }
 
-  // Set format 4 flag if needed
-  if (isFormat4) {
-    nixbpe |= 0x01; // Set e=1
-
-    // Format 4 uses full 20-bit address
-    opcodeValue = (opcodeValue & 0xfc) | ((nixbpe & 0x30) >> 4);
-    const objCode = (opcodeValue << 24) | (nixbpe << 20) | (address & 0xfffff);
-    return objCode.toString(16).toUpperCase().padStart(8, "0");
-  } else {
-    // Format 3: Calculate displacement
-    let displacement = 0;
-    let useBase = false;
-    let usePC = false;
-
-    // Try PC-relative addressing first
-    const pcValue = nextLoc;
-    displacement = address - pcValue;
-
-    if (!isNaN(displacement) && displacement >= -2048 && displacement <= 2047) {
-      nixbpe |= 0x02; // Set p=1
-      usePC = true;
-    } else if (baseRegisterValue !== null) {
-      // Try base-relative addressing
-      displacement = address - baseRegisterValue;
-
-      if (!isNaN(displacement) && displacement >= 0 && displacement <= 4095) {
-        nixbpe |= 0x04; // Set b=1
-        useBase = true;
-      }
-    }
-
-    // Direct addressing if neither PC nor base relative worked
-    if (!usePC && !useBase && address <= 4095) {
-      displacement = address;
-    }
-
-    // Build format 3 object code
-    opcodeValue = (opcodeValue & 0xfc) | ((nixbpe & 0x30) >> 4);
-    const objCode =
-      (opcodeValue << 16) | ((nixbpe & 0x0f) << 12) | (displacement & 0xfff);
-    return objCode.toString(16).toUpperCase().padStart(6, "0");
-  }
+  console.groupEnd();
+  return objectCode;
 }
 
-// Helper function for BYTE directive
 function calculateByteDirectiveObjectCode(operand: string): string {
   if (operand.startsWith("C'") && operand.endsWith("'")) {
-    // Character constant
     const characters = operand.substring(2, operand.length - 1);
     let hexCode = "";
 
@@ -258,7 +513,6 @@ function calculateByteDirectiveObjectCode(operand: string): string {
 
     return hexCode.toUpperCase();
   } else if (operand.startsWith("X'") && operand.endsWith("'")) {
-    // Hexadecimal constant
     return operand.substring(2, operand.length - 1).toUpperCase();
   }
 
