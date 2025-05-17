@@ -17,7 +17,16 @@ import { AssembledCodeSection } from "@/components/sections/AssembledCodeSection
 import { SymbolTableSection } from "@/components/sections/SymbolTableSection";
 import { IntermediateResultSection } from "@/components/sections/IntermediateResultSection";
 import { InstructionSetSection } from "@/components/sections/InstructionSetSection";
-import { RefreshCw, Download, Star, Upload, Edit, Save } from "lucide-react";
+import {
+  RefreshCw,
+  Download,
+  Star,
+  Upload,
+  Edit,
+  Save,
+  Play,
+  Code,
+} from "lucide-react";
 import {
   Table,
   TableBody,
@@ -37,12 +46,15 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { motion } from "framer-motion";
 import ChatSicXE from "@/features/ask_sic_xe/components/ask_ai_chat_wrapper";
 import StatusDot from "@/features/create_your_own/components/pulse_bubble";
 import TestFiles from "@/features/upload_component/components/test_files";
 import { testFiles } from "@/features/wrapper_page/utils/test_files";
 export default function Home() {
   const [activeTab, setActiveTab] = useState<string>("upload");
+  const [codeEditorContent, setCodeEditorContent] = useState<string>("");
 
   const [inputMode, setInputMode] = useState<"before" | "results">("before");
   const [inputSource, setInputSource] = useState<"upload" | "create">("upload");
@@ -233,6 +245,46 @@ export default function Home() {
     setIsPopoverOpen(false);
   }
 
+  function handleProcessCodeEditor() {
+    if (codeEditorContent.trim()) {
+      // Preprocess the code to ensure each line starts with a line number
+      const lines = codeEditorContent.split("\n");
+      const processedLines = lines.map((line, index) => {
+        // Check if the line already starts with a number followed by space
+        const hasLineNumber = /^\d+\s/.test(line.trim());
+
+        // If not, add the line number (index + 1) followed by a space
+        return hasLineNumber ? line : `${index + 1} ${line}`;
+      });
+
+      const processedContent = processedLines.join("\n");
+
+      // Show a toast if lines were modified
+      if (processedContent !== codeEditorContent) {
+        toast.success("Line numbers were automatically added to your code", {
+          style: {
+            borderRadius: "10px",
+            background: "#333",
+            color: "#fff",
+          },
+        });
+      }
+
+      setSicFile("Code Editor Input");
+      setInputMode("results");
+      setInputSource("upload"); // Treating it similar to upload for processing
+      handleConvert(processedContent);
+    } else {
+      toast.error("Please enter code in the editor.", {
+        style: {
+          borderRadius: "10px",
+          background: "#333",
+          color: "#fff",
+        },
+      });
+    }
+  }
+
   // Render input form (upload or create)
   if (inputMode === "before") {
     return (
@@ -254,15 +306,21 @@ export default function Home() {
               value={activeTab}
               onValueChange={setActiveTab}
             >
-              <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsList className="grid w-full grid-cols-3 mb-6">
                 <TabsTrigger value="upload" className="flex items-center gap-2">
                   <Upload className="h-4 w-4" />
                   Upload File
+                  <StatusDot status="info" className="mt-1" />
                 </TabsTrigger>
                 <TabsTrigger value="create" className="flex items-center gap-2">
                   <Edit className="h-4 w-4" />
                   Create Assembly{" "}
                   <StatusDot status="success" className="mt-1" />
+                </TabsTrigger>
+                <TabsTrigger value="editor" className="flex items-center gap-2">
+                  <Code className="h-4 w-4" />
+                  Code Editor
+                  <StatusDot status="warning" className="mt-1" />
                 </TabsTrigger>
               </TabsList>
 
@@ -285,7 +343,115 @@ export default function Home() {
                   handleConvert={handleConvertFromTestFile}
                 />
               </TabsContent>
+              <TabsContent value="editor" className="w-full">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="space-y-4"
+                >
+                  <Card className="border border-neutral-800">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg font-bold flex items-center justify-between">
+                        <div className="flex items-center">
+                          <Code className="h-4 w-4 mr-2" />
+                          SIC/XE Code Editor
+                        </div>
+                        <div className="flex gap-1">
+                          <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                          <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                          <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                        </div>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="relative border border-neutral-800 rounded-md overflow-hidden bg-black">
+                        <div className="flex">
+                          {/* Line Numbers */}
+                          <div className="py-2 pl-2 pr-3 text-right bg-neutral-900 text-neutral-500 select-none font-mono text-xs">
+                            {codeEditorContent.split("\n").map((_, i) => (
+                              <div key={i} className="leading-5">
+                                {i + 1}
+                              </div>
+                            ))}
+                            {/* Add an extra line number for new lines */}
+                            <div className="leading-5">
+                              {codeEditorContent.split("\n").length + 1}
+                            </div>
+                          </div>
 
+                          {/* Code Editor */}
+                          <Textarea
+                            placeholder="Enter your SIC/XE assembly code here..."
+                            className="min-h-[400px] w-full resize-none border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 p-2 font-mono text-sm leading-5 bg-transparent"
+                            value={codeEditorContent}
+                            onChange={(e) =>
+                              setCodeEditorContent(e.target.value)
+                            }
+                            spellCheck="false"
+                            style={{
+                              fontFamily:
+                                "JetBrains Mono, Menlo, Monaco, Consolas, monospace",
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mt-4 flex gap-2">
+                        <Button
+                          onClick={handleProcessCodeEditor}
+                          className="flex-1"
+                          disabled={!codeEditorContent.trim()}
+                          variant="default"
+                        >
+                          <Play className="h-4 w-4 mr-2" />
+                          Run Assembler
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => setCodeEditorContent("")}
+                          disabled={!codeEditorContent.trim()}
+                          className="w-auto"
+                        >
+                          Clear
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <h1 className="text-lg font-bold text-white mt-4">
+                    Example Test Files
+                  </h1>
+                  <p className="text-sm text-neutral-400 mb-2">
+                    Click on any of the test files below to load into editor
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {testFiles.map((file: any, index: any) => (
+                      <Button
+                        key={index}
+                        variant="outline"
+                        className="justify-start h-auto py-2"
+                        onClick={() => {
+                          setCodeEditorContent(file.code);
+                          toast.success(`${file.title} loaded into editor`, {
+                            style: {
+                              borderRadius: "10px",
+                              background: "#333",
+                              color: "#fff",
+                            },
+                          });
+                        }}
+                      >
+                        <Code className="h-4 w-4 mr-2" />
+                        {file.title}
+                        <span className="text-sm text-neutral-400 ml-auto">
+                          {file.description}
+                        </span>
+                      </Button>
+                    ))}
+                  </div>
+                </motion.div>
+              </TabsContent>
               <TabsContent value="create" className="w-full">
                 <CreateByText
                   state={assemblyLines}
