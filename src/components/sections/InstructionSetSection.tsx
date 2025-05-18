@@ -3,7 +3,7 @@ import { CollapsiblePanel } from "@/components/CollapsiblePanel";
 import { ExportableTable } from "@/components/ExportableTable";
 import { instructionSet } from "@/features/wrapper_page/utils/instruction_set";
 import { Input } from "../ui/input";
-
+//
 export const InstructionSetSection: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
 

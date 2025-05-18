@@ -94,9 +94,7 @@ export function generateFormat3Or4ObjectCode(
       } else if (!isNaN(parseInt(indirectValue, 16))) {
         address = parseInt(indirectValue, 16);
       }
-    }
-    // Direct addressing
-    else {
+    } else {
       i = 1;
       n = 1;
       console.log(`Direct addressing (n=1, i=1), operand=${targetOperand}`);
@@ -125,7 +123,6 @@ export function generateFormat3Or4ObjectCode(
   }
   console.groupEnd();
 
-  // Calculate final opcode with n and i bits
   const originalOpcodeValue = opcodeValue;
   opcodeValue = (opcodeValue & 0xfc) | (n << 1) | i;
   console.log(
@@ -138,7 +135,6 @@ export function generateFormat3Or4ObjectCode(
 
   let objectCode = "";
 
-  // Format 4 - Extended format
   if (isFormat4) {
     console.group("Format 4 object code calculation:");
     // Build the object code as a string to ensure proper formatting
@@ -155,7 +151,7 @@ export function generateFormat3Or4ObjectCode(
     const objCodeHex =
       opcodeValue.toString(16).padStart(2, "0") +
       flagsByte.toString(16).padStart(1, "0") +
-      address.toString(16).padStart(5, "0");
+      address.toString(16).padStart(4, "0");
 
     objectCode = objCodeHex.toUpperCase();
     console.log(`Final object code: ${objectCode}`);
